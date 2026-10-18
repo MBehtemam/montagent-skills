@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF5A36"/>
+      <stop offset="1" stop-color="#6B2FD9"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="152" height="82" rx="10" fill="url(#sky)"/>
+  <circle cx="80" cy="30" r="14" fill="#F5F0E6" fill-opacity="0.9"/>
+  <polygon points="20,76 44,52 68,76" fill="#101418" fill-opacity="0.55"/>
+  <text x="80" y="76" text-anchor="middle" font-family="Inter" font-weight="700" font-size="14" fill="#FFFFFF">Montagent</text>
+</svg>
