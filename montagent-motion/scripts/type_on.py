@@ -72,6 +72,10 @@ def main(argv):
         """The drawn instant nearest to t: frame n is drawn at floor(n * 1000 / fps)."""
         return math.floor(round(t * fps / 1000) * 1000 / fps)
 
+    def last_drawn(end):
+        """The last drawn instant before a half-open end."""
+        return math.floor((math.ceil(end * fps / 1000) - 1) * 1000 / fps)
+
     text = spec["text"]
     pattern = r"\S+" if spec.get("by", "letter") == "word" else r"\S"
     units = [(m.start(), m.end()) for m in re.finditer(pattern, text)]
@@ -126,17 +130,19 @@ def main(argv):
         run = {"text": text[a:b]}
         if k + 1 in highlights:
             h = highlights[k + 1]
-            run["highlight"] = {"start": on_frame(h["start"]), "end": h.get("end", end), "color": h["color"]}
+            h_end = min(on_frame(h.get("end", end)), end)
+            run["highlight"] = {"start": on_frame(h["start"]), "end": h_end, "color": h["color"]}
         el["runs"] = [run]
         if spec.get("enter", "cut") == "pop":
-            landed = on_frame(start + pop["ms"])
+            landed = min(on_frame(start + pop["ms"]), last_drawn(end))
             if pop["rise"]:
                 el["y"] = [{"t": start, "v": y + pop["rise"]}, {"t": landed, "v": y, "ease": POP}]
             s = pop["from"]
             el["scale"] = [{"t": start, "v": [s, s]}, {"t": landed, "v": [1.0, 1.0], "ease": POP}]
         if exit_:
-            at = on_frame(exit_["at"])
-            el["opacity"] = [{"t": at, "v": 1.0}, {"t": on_frame(at + exit_["ms"]), "v": 0.0, "ease": "ease-in"}]
+            at = min(on_frame(exit_["at"]), last_drawn(end))
+            exit_end = min(on_frame(at + exit_["ms"]), last_drawn(end))
+            el["opacity"] = [{"t": at, "v": 1.0}, {"t": exit_end, "v": 0.0, "ease": "ease-in"}]
         # A typed or kinetic line is not a caption: keep it out of the caption checks.
         el["caption"] = False
         elements.append(el)
@@ -156,6 +162,7 @@ def main(argv):
         # Solid while typing, a hard on/off blink while idle before and after.
         half = cursor.get("blink", 500) // 2
         start, stop = on_frame(cursor["from"]), on_frame(cursor["to"])
+        stop_last = last_drawn(stop)
         typing = (times[0], times[-1] + half)
 
         def lit(t):
@@ -168,8 +175,9 @@ def main(argv):
         ops = [{"t": start, "v": 1.0}]
         for t in instants:
             v = 1.0 if lit(t) else 0.0
-            if start < t < stop and on_frame(t) > ops[-1]["t"] and v != ops[-1]["v"]:
-                ops.append({"t": on_frame(t), "v": v, "ease": "step"})
+            t_frame = min(on_frame(t), stop_last)
+            if start < t_frame < stop and t_frame > ops[-1]["t"] and v != ops[-1]["v"]:
+                ops.append({"t": t_frame, "v": v, "ease": "step"})
         # A blink that would come on for less than half a cycle before the cursor goes
         # reads as a flicker: stay off instead.
         if len(ops) > 1 and ops[-1]["v"] == 1.0 and stop - ops[-1]["t"] < half:

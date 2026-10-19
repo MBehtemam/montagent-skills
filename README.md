@@ -3,22 +3,22 @@
 Agent skills for driving Montagent from any Agent-Skills-compatible client. Install them with:
 
 ```sh
-npx skills add MBehtemam/montagent-skills
+npx skills add MBehtemam/Montagent
 ```
 
 Start with `montagent`, the router skill. It points to the job skills: `montagent-motion`, `montagent-footage`, `montagent-character`, `montagent-prerender` and `montagent-craft`.
 
 ## Using the skills
 
-Skills teach your coding agent how to drive Montagent; install the Montagent CLI separately using [the main README](https://github.com/MBehtemam/Montagent#readme). The CLI should be on the agent's PATH. The Montagent MCP server is optional when the agent has shell access.
+Skills teach your coding agent how to drive Montagent; install the Montagent CLI separately using [the main README](../README.md). The CLI should be on the agent's PATH. The Montagent MCP server is optional when the agent has shell access.
 
-These skills are authored and drift-guarded in [`MBehtemam/Montagent/skills`](https://github.com/MBehtemam/Montagent/tree/main/skills) and mirrored to [`MBehtemam/montagent-skills`](https://github.com/MBehtemam/montagent-skills) so `npx skills add` downloads only the skills instead of the full repository. To use the edited skills from this checkout before they are published, run the skill installer from your video project's directory and select the Montagent skills:
+To use the edited skills from this checkout before they are published, run the skill installer from your video project's directory and select the Montagent skills:
 
 ```sh
-npx skills add /path/to/Montagent/skills --skill montagent montagent-motion montagent-craft montagent-footage montagent-character montagent-prerender
+npx skills add /path/to/Montagent --skill montagent montagent-motion montagent-craft montagent-footage montagent-character montagent-prerender
 ```
 
-Replace the local path with your own checkout path. The GitHub install command above gets the published mirror, which includes local edits once they land on the main branch. Follow the installer's client selection, then reload your client's skill list if needed.
+Replace the local path with your own checkout path. The GitHub install command above gets the published repository version, which includes local edits only after they are pushed. Follow the installer's client selection, then reload your client's skill list if needed.
 
 Ask your agent:
 
@@ -40,21 +40,3 @@ These skills are experimental. A pre-registered, blind-judged eval on held-out b
 See [Verdict runs: every arm on the held-out briefs, judged blind](https://github.com/MBehtemam/Montagent/issues/549). A second verdict on new held-out briefs ran every arm but was closed as inconclusive, so the lift claim is dropped: the skills make no claim to produce better videos than Montagent without them. See [Second verdict runs: every arm on the new briefs, judged blind](https://github.com/MBehtemam/Montagent/issues/582).
 
 The skills describe the main branch. If your installed `montagent` binary is older, trust its findings over the skills.
-
-## Skill-script contract
-
-Bundled generators in `skills/<skill>/scripts/` follow one contract so agents and CI can run them interchangeably: <!-- guard-ok: CI -->
-
-- **Invocation:** `python3 skills/<skill>/scripts/<script>.py <project> <spec> [--check]` reads the project and sidecar spec, updates the targeted elements or keyframes, and prints the updated project JSON to `stdout`. <!-- guard-ok: python3 stdout -->
-- **Dependencies:** Python `>= 3.9` standard library only, plus `montagent` and `ffmpeg` on `PATH` when media probing or text measurement is needed (`montagent-prerender` is the sole opt-in exception for external vector/3D renderers). <!-- guard-ok: PATH ffmpeg -->
-- **Validation before exit:** every script validates its output with `montagent validate` before printing to `stdout`, exiting non-zero with diagnostics on `stderr` if validation fails. <!-- guard-ok: stdout stderr -->
-- **Idempotence and `--check`:** re-running a script with the same `<spec>` replaces the targeted element or `[start, end]` keyframe range in place rather than duplicating work. Passing `--check` exits `0` when the project is already in sync with `<spec>` and `1` when regeneration is needed (used when a referenced audio clip or timing window changes).
-- **Drift guard:** each script's module docstring declares `Requires Python >= 3.9` and `drift-guard: <args>`, which `cargo test --test skills` executes against `fixtures/skills/` and validates on every build. <!-- guard-ok: cargo args -->
-
-### Templates, presets, and expression controls
-
-Montagent does not add `.mogrt` motion-graphics templates, Essential Properties, Slider/Angle/Checkbox Expression Controls, or `.ffx` effect presets to the project schema. Instead, a **skill script plus its standalone `<spec>` JSON sidecar** is the complete replacement:
-
-- The `<spec>` JSON file is the editable parameter rig (what an After Effects template exposes as Essential Properties or Expression Controls, or what a reusable `.ffx` preset captures).
-- Running the skill script (`keyframes.py`, `type_on.py`, `bake_rig.py`, `beat_grid.py`, `duck.py`) compiles that `<spec>` into ordinary, self-contained `.montagent.json` tracks, elements, and keyframes that `validate`, `frame`, `preview`, and `render` inspect directly without hidden runtime expressions.
-

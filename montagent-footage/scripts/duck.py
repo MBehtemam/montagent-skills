@@ -197,7 +197,7 @@ def ducked(bed, words, duck, fps, report):
         after = end if n + 1 == len(spans) else over
         points += [(s - lead - ramp, over), (s - lead, under), (e + lead, under), (e + lead + ramp, after)]
         report(f"duck: voice {s}-{e}")
-    points = [(on_frame(max(start, min(t, stop))), v) for t, v in points]
+    points = [(min(on_frame(max(start, t)), stop), v) for t, v in points]
     if points[1][0] <= start:
         points[0] = (start, under)
 

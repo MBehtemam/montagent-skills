@@ -1,6 +1,6 @@
 # Trailer effects
 
-Trailers, and any piece that borrows their effects: slammed titles, flash frames, shake, glitch cuts, chromatic splits, glows, HUDs. They are all ordinary keyframes and static effects. Several are sampled per frame (shake, jitter, glitch), so bake them with `python3 scripts/keyframes.py <project> <spec>` from the beat sheet rather than hand-typing per-frame tables, and keep per-frame keyframes to the effect's own window. <!-- guard-ok: python3 -->
+Trailers, and any piece that borrows their effects: slammed titles, flash frames, shake, glitch cuts, chromatic splits, glows, HUDs. They are all ordinary keyframes and static effects. Several are sampled per frame (shake, jitter, glitch), so write them with a generator script from the beat sheet, and keep per-frame keyframes to the effect's own window.
 
 ## Trailer grammar
 
@@ -18,7 +18,7 @@ A title that lands hard: it starts big and hits its size fast, with no overshoot
 
 - **Scale:** from 1.3–1.6 down to 1.0 over 120–200 ms, with `[0.05, 0.7, 0.1, 1]`. Opacity from 0 to 1 over the first 2 frames.
 - **Flash:** a full-frame rect in white (or the accent) on the hit, `opacity` from 0.8–1.0 down to 0 over 3–5 frames.
-- **Shake:** on the hit, run `scripts/keyframes.py` with `"op": "wiggle"` (or `"op": "bounce"` for a damped landing) on `x` and `y` over a 200–350 ms window (6–10 frames at 12–24 px amplitude, `seed` fixed per element) so the shake settles back to rest automatically. <!-- guard-ok: op wiggle bounce seed -->
+- **Shake:** on the hit, offset `x` and `y` of everything that should shake, per frame, for 6–10 frames. Start at 12–24 px (at 1080p) and decay each frame by a factor of 0.6–0.75, alternating sign. Use `linear` between the per-frame keyframes.
 
 ```json
 {

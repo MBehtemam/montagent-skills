@@ -66,30 +66,28 @@ This is the capability map. Read it before you design, so the brief does not lea
 **Paint**
 
 - Timed colour on a word inside text, by recolouring that word's run: `highlight`.
-- Linear, radial, sweep (conic) and two-point conical (off-axis focal radial) gradients as the fill or stroke of a shape, and the colour or stroke of a text element, with the angle, centre, radius, focal point and stops animating in place: `gradient`, `linear`, `radial`, `sweep`, `two_point_conical`, `angle`, `center`, `radius`, `focal`, `stops`, `offset`.
+- Linear and radial gradients as the fill or stroke of a shape, and the colour or stroke of a text element, with the angle, centre, radius and stops animating in place: `gradient`, `angle`, `center`, `radius`, `stops`, `offset`.
 
 **Text**
 
 - Text in fonts you vendor, as runs with their own size and colour: `fonts`, `size`, `color`.
 - Letter spacing on a whole text element, keyable: `letter_spacing`.
-- A text element's letters, words or lines animating one after another (forward, reverse, from the centre out, or from the edges in), with per-unit blur and one unit singled out: `units`, `order`, `center_out`, `edges_in`, `blur`, `unit`.
+- A text element's letters, words or lines animating one after another, with one singled out: `units`, `unit`.
 - One line of text bent along its own curve (straight, arc, wave or circle) and sliding along it: `path` (the `path` element's points) and `path_offset` on `text`, with `align`.
 
 **Compositing**
 
 - Crossfade between clips, and a cut between clips: `transition`, `step`. Write `"audio": "constant_power"` on every new transition between clips that sound, so the sound crossfades too; absent keeps the hard audio cut.
 - Wipe, slide and push between clips, travelling in a direction, with an ease: `kind`, `direction`, `ease`.
-- Chroma key and luminance key: `chroma`, `luma_key`, `threshold`, `tolerance`, `softness`, `spill`, `invert`.
-- Refine a cutout's or mask's alpha edge with choke/spread, feather and contrast: `matte`, `choke`, `feather`, `contrast`.
-- Blend an element into what is beneath it, as screen, add, multiply, overlay, darken, lighten, color_dodge, color_burn, hard_light, soft_light, difference, exclusion, hue, saturation, color or luminosity: `blend`.
+- Chroma key: `chroma`.
+- Blend an element into what is beneath it, as screen, add, multiply or overlay: `blend`.
 - Keep everything outside a mask shape instead of inside it: `mask`, `invert`.
 - Soften a mask's edge, and animate the softness: `mask`, `feather`.
 - Mask an element through any closed outline drawn point by point, and animate the outline: `mask`, `shape`, `points`.
 
 **Effects**
 
-- Blur, shadow, mask, tint, saturation, brightness, contrast, vibrance, hue rotation, channel inversion, ASC CDL color grading, 3D LUT cube grading, standalone matte refinement and luma keying: `blur`, `shadow`, `mask`, `tint`, `saturation`, `brightness`, `contrast`, `vibrance`, `hue_rotate`, `invert`, `cdl`, `lut3d`, `matte`, `luma_key`.
-- Outer alpha-contour stroke, alpha-preserving solid colour fill, and inset shadow clipped to an element's alpha silhouette (sticker borders on transparent PNGs or keyed subjects, hit-flashes, sunken cutouts): `outline`, `color_overlay`, `inner_shadow`.
+- Blur, shadow, mask, tint, saturation, brightness, contrast, ASC CDL color grading and 3D LUT cube grading: `blur`, `shadow`, `mask`, `tint`, `saturation`, `brightness`, `contrast`, `cdl`, `lut3d`.
 - Film grain that re-rolls every frame from a literal seed, on an element or as a grey `rect` texture blended `overlay`: `grain`, `seed`, `size`, `mono`.
 - Posterize an element's colours into a few flat steps: `posterize`, `levels`.
 - A bloom from an element's bright parts: `glow`, `threshold`, `radius`, `intensity`.
@@ -98,13 +96,12 @@ This is the capability map. Read it before you design, so the brief does not lea
 - A look outside this vocabulary, drawn in your own code, pre-rendered to lossless footage with alpha and placed as a `video`, with a recipe that rebuilds it: `video` (`montagent-prerender`).
 - A vector drawing (SVG), brought in as one image: rasterised once to a PNG at the size it is shown, placed as an `image`, with a recipe that rebuilds it: `image` (`montagent-prerender`).
 - A Lottie animation, brought in as footage: rendered frame by frame, one fresh player per frame, into lossless footage with alpha, placed as a `video`, with a recipe that rebuilds it: `video` (`montagent-prerender`).
-- Keyframe any effect's numbers and colours, and reveal an element through a keyed mask: `effects`, `radius`, `dx`, `dy`, `color`, `opacity`, `x`, `y`, `width`, `height`, `amount`, `tolerance`, `softness`, `spill`, `levels`, `threshold`, `intensity`, `angle`, `length`, `choke`, `feather`, `contrast`.
+- Keyframe any effect's numbers and colours, and reveal an element through a keyed mask: `effects`, `radius`, `dx`, `dy`, `color`, `opacity`, `x`, `y`, `width`, `height`, `amount`, `tolerance`, `softness`, `spill`, `levels`, `threshold`, `intensity`, `angle`, `length`.
 
 **Time**
 
 - Per-clip speed, and a check on clips that run across a loop's join: `speed`, `loop`.
 - Speed ramps, reverse and freeze frames on a video, as a curve of source times: `source_time`.
-- Linear cross-dissolve between consecutive source frames on slow-motion or speed-ramped video: `frame_blend` (`"none"`, `"mix"`).
 
 **Audio**
 
@@ -128,11 +125,13 @@ This is the capability map. Read it before you design, so the brief does not lea
 
 A piece can mix these: load each skill whose row it touches.
 
+A piece can mix these: load each skill whose row it touches.
+
 ### What it can't do yet
 
 Each item names the issue whose close retires it. Tell the user when the brief depends on one.
 
-- Parenting and groups. Bake the hierarchy to per-element keyframes (`montagent-character`). <!-- workaround: #499 · replaced by: parenting or a group transform -->
+- Parenting, groups and cameras. Bake the hierarchy to per-element keyframes (`montagent-character`). <!-- workaround: #499 · replaced by: parenting or a group transform -->
 - Changing an element's image over time. Use one element per image, each shown for its own span (`montagent-character`). <!-- workaround: #518 · replaced by: an image that changes over time -->
 - Reading a track's tempo or beats. Find the beat grid with the script in `montagent-craft`. <!-- workaround: #547 · replaced by: tempo and downbeat from probe -->
 
@@ -147,13 +146,3 @@ Montagent refuses these on purpose, so do not wait for them. Each line gives wha
 - Keyframe expressions, or links between values. Write literal keyframes. ([ADR-0145](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0145-capcut-and-premiere-are-where-precedent-is-looked-for-first-and-a-capability-with-none-enters-by-the-entry-test.md))
 - A native SVG or Lottie source. Pre-render it once with `montagent-prerender`: an SVG as one PNG, a Lottie as footage. ([ADR-0171](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0171-svg-and-lottie-do-not-enter-as-sources-and-each-is-pre-rendered-through-the-skill.md))
 - An open shader or script file. Pre-render the look with `montagent-prerender` and bring it in as footage ([ADR-0156](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0156-four-named-effects-join-the-effects-list-and-a-code-drawn-piece-enters-as-pre-rendered-footage.md)). ([ADR-0017](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0017-closed-schema-no-escape-hatch.md))
-- A native 4-color gradient effect or Coons-patch mesh gradient. Layer two to four `radial` or `two_point_conical` gradient `rect` elements with `screen` or `add` blend over a dark base (`montagent-motion`), or pre-render a complex animated mesh with `montagent-prerender`. ([ADR-0222](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0222-sweep-and-two-point-conical-gradients-join-paint-and-4-color-gradient-stays-a-skill-recipe.md))
-- Bevel and emboss or a gradient overlay effect. Use native gradient paint on `fill`, `stroke` or `color`, a blended gradient `rect` over footage, a pair of opposite `inner_shadow` effects for a 2.5D bevel, or pre-render 3D lighting with `montagent-prerender`. ([ADR-0231](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0231-outline-color-overlay-and-inner-shadow-enter-effects-and-bevel-and-gradient-overlay-are-refused.md))
-- A 3D camera, z-depth sorting, 3D layer intersections, inter-layer 3D cast shadows, or arbitrary 4-point corner pin. Turn flat elements in perspective with `swivel`, `tilt` and `perspective` ([ADR-0167](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0167-an-element-may-be-projected-never-placed-swivel-tilt-and-perspective-join-the-transform.md)), or pre-render 3D scenes with `montagent-prerender` ([ADR-0233](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0233-3d-models-and-multichannel-passes-are-refused-as-native-sources-and-3d-scenes-pre-render-via-headless-recipes.md)).
-- Native 3D model sources (`.glb`, `.gltf`, `.obj`, `.fbx`, `.blend`) or multichannel 3D passes. Pre-render 3D scenes to transparent footage or PNGs with `montagent-prerender`. ([ADR-0233](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0233-3d-models-and-multichannel-passes-are-refused-as-native-sources-and-3d-scenes-pre-render-via-headless-recipes.md))
-- After Effects Range Selector shapes, converting text glyphs to `path` elements, or vertical writing mode (`writing_mode` / `text_orientation`). Stagger units with `order` (`forward`, `reverse`, `center_out`, `edges_in`), per-unit `blur`, and 3-keyframe return waves; animate `text` directly with `stroke`, `units`, `path` and `effects` instead of converting glyphs with inner counters to single-contour `path` elements; and stack upright vertical columns with `\n` or rotate sideways spines with `rotation` (`montagent-motion`). ([ADR-0224](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0224-units-gain-center-out-edges-in-and-blur-and-range-selectors-glyph-to-path-and-vertical-writing-mode-are-refused.md)) <!-- guard-ok: writing_mode text_orientation -->
-<<<<<<< HEAD
-- Iterative multi-pass matte chokers or procedural Roughen Edges filters. Refine alpha cutouts with a single `matte` effect (`choke`, `feather`, `contrast`), or pre-render distressed organic edges with `montagent-prerender`. ([ADR-0227](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0227-standalone-matte-and-luma-key-enter-effects-and-iterative-chokers-and-roughen-edges-are-refused.md))
-=======
-- Optical-flow frame interpolation (`"pixel_motion"`, `"optical_flow"`), a video echo or frame-trail effect, or a posterize-time effect. Use `frame_blend` (`"mix"`) for deterministic frame cross-dissolve or pre-render optical-flow slow motion with `montagent-prerender`; layer time-shifted copies of the element for frame echo; use stepped `source_time` keyframes for posterize-time frame-rate reduction (`montagent-footage`). ([ADR-0232](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0232-frame-blending-enters-video-and-optical-flow-echo-and-posterize-time-stay-outside-the-engine.md))
->>>>>>> feat/1106

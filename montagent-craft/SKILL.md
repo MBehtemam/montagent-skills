@@ -33,7 +33,8 @@ Music sets the clock. Find the tempo and the first downbeat before you place any
 The arithmetic:
 
 - A beat is `60000 / BPM` ms, a bar is four beats, and a phrase is four bars (sometimes eight).
-- **Count from the first downbeat, never by adding.** The *n*th beat is `downbeat + n × beat`, then moved to its drawn frame: `floor(round(t * fps / 1000) * 1000 / fps)`. Adding a rounded beat over and over drifts by a frame every few bars. `measure --at` confirms an instant is drawn.
+- **Count from the first downbeat, never by adding.** The *n*th beat is `downbeat + n × beat`, then moved to its drawn frame: `floor(round(t * fps / 1000) * 1000 / fps)` (using `round` to prevent truncation landing between frames). Adding a rounded beat over and over drifts by a frame every few bars. `measure --at` confirms an instant is drawn.
+- **Keyframes clamp strictly before element end.** Elements are `[start, end)` half-open intervals; `end` itself is not drawn for that element. The final keyframe of an element must never exceed the last drawn frame: `floor((ceil(end * fps / 1000) - 1) * 1000 / fps)` (safe keyframe instant: `min(on_frame(t), last_drawn(end))`) to avoid `R-KEYFRAME-UNREACHED`.
 - At 90, 100 and 120 BPM a beat is a whole number of frames at 30 and 60 fps (also 24 fps at 90 and 120, and 25 fps at 100). At other tempos the beats fall 14, 14, 15… frames apart. That is fine when each beat is counted from the downbeat.
 
 Where things go:

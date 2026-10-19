@@ -1,21 +1,19 @@
 ---
 name: montagent-prerender
-description: "Bring code-drawn visuals, Lottie animation, 3D scenes, or stabilized source video into Montagent as lossless footage, or an SVG still as one PNG, each with a rebuild recipe. Load for a look outside the effects list, generative visuals, SVG, Lottie or 3D model input, or source-video stabilization, reference-frame locking, ping-pong and slow-down."
+description: "Bring code-drawn visuals, Lottie animation, or stabilized source video into Montagent as lossless footage, or an SVG still as one PNG, each with a rebuild recipe. Load for a look outside the effects list, generative visuals, SVG or Lottie input, or source-video stabilization, reference-frame locking, ping-pong and slow-down."
 ---
 
 # Pre-render: generated visuals and stabilized footage
 
-Five routes, one set of [common rules](#common-rules). A **code-drawn piece** becomes footage, placed as a `video`: read it first. An **SVG still** becomes one PNG, placed as an `image`: jump to [the SVG route](#the-svg-route). A **Lottie animation** becomes footage too, drawn one fresh player per frame: jump to [the Lottie route](#the-lottie-route). A **3D scene** becomes transparent footage or a still PNG: jump to [the 3D scene route](#the-3d-scene-route). **Source-video stabilization** bakes a new clip: jump to [the stabilize route](#the-stabilize-route). All run outside the render, so every painter decodes the same pixels.
+Four routes, one set of [common rules](#common-rules). A **code-drawn piece** becomes footage, placed as a `video`: read it first. An **SVG still** becomes one PNG, placed as an `image`: jump to [the SVG route](#the-svg-route). A **Lottie animation** becomes footage too, drawn one fresh player per frame: jump to [the Lottie route](#the-lottie-route). **Source-video stabilization** bakes a new clip: jump to [the stabilize route](#the-stabilize-route). All run outside the render, so every painter decodes the same pixels.
 
-Montagent has no shader or script file ([ADR-0017](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0017-closed-schema-no-escape-hatch.md)). A look outside the `effects` list is drawn in your own code, encoded once as footage, and placed as an ordinary `video`. The format, the schema and the painter stay as they are ([ADR-0156](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0156-four-named-effects-join-the-effects-list-and-a-code-drawn-piece-enters-as-pre-rendered-footage.md) §7, [ADR-0233](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0233-3d-models-and-multichannel-passes-are-refused-as-native-sources-and-3d-scenes-pre-render-via-headless-recipes.md)).
+Montagent has no shader or script file ([ADR-0017](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0017-closed-schema-no-escape-hatch.md)). A look outside the `effects` list is drawn in your own code, encoded once as footage, and placed as an ordinary `video`. The format, the schema and the painter stay as they are ([ADR-0156](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0156-four-named-effects-join-the-effects-list-and-a-code-drawn-piece-enters-as-pre-rendered-footage.md) §7).
 
 ## When to reach for it
 
-Take the named route first. Read the `effects` list in `montagent://schema/index.json`: when a member makes the look (blur, shadow, tint, a `blend`, a keyed `mask`), use it. Pre-render only when no member, paint or blend composes the look: distortions, mosaic, lens flare, particles, a procedural pattern, or an external 3D model/scene.
+Take the named route first. Read the `effects` list in `montagent://schema/index.json`: when a member makes the look (blur, shadow, tint, a `blend`, a keyed `mask`), use it. Pre-render only when no member, paint or blend composes the look: distortions, mosaic, lens flare, particles, a procedural pattern.
 
 Reach for the SVG route when you are handed a vector drawing (a logo, an icon, an illustration) as an SVG file, or when a still is easiest to draw as SVG. No element accepts an SVG file ([ADR-0171](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0171-svg-and-lottie-do-not-enter-as-sources-and-each-is-pre-rendered-through-the-skill.md)). An SVG that animates (SMIL or CSS) is not this route: it rasterises as one still frame and the motion is lost. Key the placed image's own `scale`, `rotation` and `opacity` instead.
-
-Reach for the 3D scene route when you are handed a 3D asset (`.glb`, `.gltf`, `.obj`, `.fbx`, `.blend`, `.c4d`) or a 3D scene. No element accepts a 3D model or multichannel pass ([ADR-0167](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0167-an-element-may-be-projected-never-placed-swivel-tilt-and-perspective-join-the-transform.md), [ADR-0233](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0233-3d-models-and-multichannel-passes-are-refused-as-native-sources-and-3d-scenes-pre-render-via-headless-recipes.md)). Headless rendering produces transparent ProRes 4444 / PNG footage outside the render, ready for direct 2D placement.
 
 Reach for the Lottie route when you are handed a Lottie JSON file (an After Effects export, a LottieFiles animation), or when a motion is easiest to take from one. No element accepts a Lottie file ([ADR-0171](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0171-svg-and-lottie-do-not-enter-as-sources-and-each-is-pre-rendered-through-the-skill.md)). It costs three things. **A fixed resolution:** the footage is raster at the size you render it. **A recipe toolchain:** a Lottie player installed to reproduce the piece (never to render the project). **Footage size:** PNG in a MOV runs from about 6 MB per second for smooth art to 141 MB per second for noisy art, at 1080p and 25 fps, so render at the size shown and no larger. If the motion is a few shapes, keying native `rect`, `ellipse` and `path` elements is smaller and stays sharp.
 
@@ -127,34 +125,9 @@ The footage is an ordinary `video`, placed at its own size with `fit` of `contai
 
 Run `validate`. Key `opacity`, `scale` and `position`, add `effects`, lay it on a track like any clip. Do not retime or restyle the animation inside the project: change the Lottie or the spec and run `build` again. <!-- guard-ok: position build -->
 
-## The 3D scene route
-
-**Input:** a 3D model asset (`.glb`, `.gltf`, `.obj`, `.fbx`, `.blend`, `.c4d`) or headless scene script, a size, an fps, and a duration.
-
-No element accepts a 3D model or multichannel 3D render pass natively ([ADR-0167](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0167-an-element-may-be-projected-never-placed-swivel-tilt-and-perspective-join-the-transform.md), [ADR-0233](https://github.com/MBehtemam/Montagent/blob/main/docs/adr/0233-3d-models-and-multichannel-passes-are-refused-as-native-sources-and-3d-scenes-pre-render-via-headless-recipes.md)). 3D scenes execute headlessly outside the render, producing transparent video or still PNG footage.
-
-1. **Deterministic headless engine.** Use Blender CLI (`blender -b`) or headless Three.js / Puppeteer. Pin camera parameters, lighting, and rendering seeds:
-   - For Blender: enable transparent background (`bpy.context.scene.render.film_transparent = True`), pin render engine (`CYCLES` with pinned CPU device and fixed seed, or deterministic `BLENDER_EEVEE_NEXT`), and output frames to `PRERENDER_FRAMES_DIR`.
-   - Record exact toolchain and engine versions in `versions`.
-2. **Spec.** Write a build spec with `"input": "png"`: `name`, `out`, the literal `width` and `height`, `fps`, `frames`, `render`, `files`, and `versions`. `render` runs the headless command exporting RGBA PNG frames.
-3. **Build.** `python3 scripts/prerender.py build <spec>`. It runs the headless renderer, encodes transparent footage (`.mov`), and checks decoded frame hashes. Animated sequences export as ProRes 4444 (`alpha: true`, ADR-0203) or PNG-in-MOV; single frames export as PNG.
-4. **Place.** Place into `project.json` as an ordinary `video` or `image` element, with standard 2D transforms, `swivel`, `tilt`, `effects[]`, and `blend`.
-5. **Check.** Run `validate`, `montagent probe` the footage to verify alpha, and `frame` to confirm compositing.
-
-The sample spec for a headless Blender spin:
-
-```json fragment
-{
-  "name": "product_spin", "out": "media", "input": "png", "width": 640, "height": 360, "fps": 25, "frames": 75,
-  "render": ["blender", "-b", "scene.blend", "-P", "render_turntable.py", "-o", "{frames_dir}/f######.png", "-s", "1", "-e", "75", "-a"],
-  "files": ["scene.blend", "render_turntable.py"],
-  "versions": {"blender": ["blender", "--version"]}
-}
-```
-
 ## The stabilize route
 
-Reach for this route when a source video needs stabilization, a lock to a reference frame, or baked ping-pong and slow-down (including optical-flow slow motion via `ffmpeg -vf minterpolate` when `frame_blend: "mix"` on the `video` element is insufficient; ADR-0232). Bake a **new lossless clip**, then place it as an ordinary `video` under the common rules. [US-10's resolution](https://github.com/MBehtemam/Montagent/issues/920#issuecomment-6109518213) keeps this work in the skill under ADR-0156 §7 / ADR-0171: no format change or ADR, and no `stabilize` effect. For a very short clip, literal keyframes for `scale` and `source_time` are an alternative; paper fill needs new pixels and belongs in the bake. <!-- guard-ok: stabilize source_time minterpolate frame_blend -->
+Reach for this route when a source video needs stabilization, a lock to a reference frame, or baked ping-pong and slow-down. Bake a **new lossless clip**, then place it as an ordinary `video` under the common rules. [US-10's resolution](https://github.com/MBehtemam/Montagent/issues/920#issuecomment-6109518213) keeps this work in the skill under ADR-0156 §7 / ADR-0171: no format change or ADR, and no `stabilize` effect. For a very short clip, literal keyframes for `scale` and `source_time` are an alternative; paper fill needs new pixels and belongs in the bake. <!-- guard-ok: stabilize source_time -->
 
 Read [the stabilize recipe](references/stabilize.md) for this branch. It includes [a narrow reference script](references/stabilize.py) for opaque ink on light, uniform paper: measure ink centroid and spread per frame, fit a cubic, re-place with subpixel transforms, fill with paper colour or replicated edges, and encode lossless. The script is **non-normative**: the acceptance check decides whether the bake is usable. Use another external tracker for footage outside that scope.
 
