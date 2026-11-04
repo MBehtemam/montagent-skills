@@ -40,3 +40,21 @@ These skills are experimental. A pre-registered, blind-judged eval on held-out b
 See [Verdict runs: every arm on the held-out briefs, judged blind](https://github.com/MBehtemam/Montagent/issues/549). A second verdict on new held-out briefs ran every arm but was closed as inconclusive, so the lift claim is dropped: the skills make no claim to produce better videos than Montagent without them. See [Second verdict runs: every arm on the new briefs, judged blind](https://github.com/MBehtemam/Montagent/issues/582).
 
 The skills describe the main branch. If your installed `montagent` binary is older, trust its findings over the skills.
+
+## Skill-script contract
+
+Bundled generators in `skills/<skill>/scripts/` follow one contract so agents and CI can run them interchangeably: <!-- guard-ok: CI -->
+
+- **Invocation:** `python3 skills/<skill>/scripts/<script>.py <project> <spec> [--check]` reads the project and sidecar spec, updates the targeted elements or keyframes, and prints the updated project JSON to `stdout`. <!-- guard-ok: python3 stdout -->
+- **Dependencies:** Python `>= 3.9` standard library only, plus `montagent` and `ffmpeg` on `PATH` when media probing or text measurement is needed (`montagent-prerender` is the sole opt-in exception for external vector/3D renderers). <!-- guard-ok: PATH ffmpeg -->
+- **Validation before exit:** every script validates its output with `montagent validate` before printing to `stdout`, exiting non-zero with diagnostics on `stderr` if validation fails. <!-- guard-ok: stdout stderr -->
+- **Idempotence and `--check`:** re-running a script with the same `<spec>` replaces the targeted element or `[start, end]` keyframe range in place rather than duplicating work. Passing `--check` exits `0` when the project is already in sync with `<spec>` and `1` when regeneration is needed (used when a referenced audio clip or timing window changes).
+- **Drift guard:** each script's module docstring declares `Requires Python >= 3.9` and `drift-guard: <args>`, which `cargo test --test skills` executes against `fixtures/skills/` and validates on every build. <!-- guard-ok: cargo args -->
+
+### Templates, presets, and expression controls
+
+Montagent does not add `.mogrt` motion-graphics templates, Essential Properties, Slider/Angle/Checkbox Expression Controls, or `.ffx` effect presets to the project schema. Instead, a **skill script plus its standalone `<spec>` JSON sidecar** is the complete replacement:
+
+- The `<spec>` JSON file is the editable parameter rig (what an After Effects template exposes as Essential Properties or Expression Controls, or what a reusable `.ffx` preset captures).
+- Running the skill script (`keyframes.py`, `paths.py`, `type_on.py`, `duck.py`) compiles that `<spec>` into ordinary, self-contained `.montagent.json` tracks, elements, and keyframes that `validate`, `frame`, `preview`, and `render` inspect directly without hidden runtime expressions.
+
