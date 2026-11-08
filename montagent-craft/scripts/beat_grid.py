@@ -6,10 +6,9 @@ and print the grid on the project's own frames.
 
 Requires Python >= 3.9
 Standard library only, plus ffmpeg on PATH.
-# workaround: #547 · replaced by: tempo and downbeat from probe
 drift-guard: type_on.montagent.json beat_grid.spec.json
 
-Montagent reads no tempo from an audio file, so this listens to it: it decodes the track
+Decodes the track
 with ffmpeg, follows its onsets (the moments it gets suddenly louder), takes the tempo from
 how those repeat, finds where the beats fall, and picks as the downbeat the beat of each
 bar that hits hardest. Give `bpm` when the track states it, and `downbeat` too when you

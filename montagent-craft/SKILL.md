@@ -27,7 +27,7 @@ The look is done when every line holds on every tile of the contact sheet, and a
 Music sets the clock. Find the tempo and the first downbeat before you place anything.
 
 - **Tempo stated** in the brief or the asset notes: use it, with the downbeat it states.
-- **Tempo not stated:** run `python3 scripts/beat_grid.py <project> <spec>` (run it with `--help` for the spec). It listens to the track, places it so a downbeat lands where you want it, and fades it out on the last drawn frame. It prints the project on stdout, so redirect that to a new file, and the grid as JSON on stderr. Read both confidences: under 1.5, or `downbeat_by` of `first`, the grid is a guess. Give `bpm` (and `downbeat`) in the spec when you know them, and say in your hand-off that the grid was estimated. <!-- workaround: #547 · replaced by: tempo and downbeat from probe --> <!-- guard-ok: bpm downbeat downbeat_by first -->
+- **Tempo not stated:** run `python3 scripts/beat_grid.py <project> <spec>` (run it with `--help` for the spec). It listens to the track, places it so a downbeat lands where you want it, and fades it out on the last drawn frame. It prints the project on stdout, so redirect that to a new file, and the grid as JSON on stderr. Read both confidences: under 1.5, or `downbeat_by` of `first`, the grid is a guess. Give `bpm` (and `downbeat`) in the spec when you know them, and say in your hand-off that the grid was estimated. <!-- guard-ok: bpm downbeat downbeat_by first -->
 - **No music:** a 500 ms beat (120 BPM).
 
 The arithmetic:

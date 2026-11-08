@@ -150,12 +150,62 @@ NAMED_BEZIERS: Dict[str, Tuple[float, float, float, float]] = {
 }
 
 
-def fps_float(fps_field: Any) -> float:
-    if isinstance(fps_field, (int, float)):
-        return float(fps_field)
+def fps_ratio(fps_field: Any) -> Tuple[int, int]:
+    if isinstance(fps_field, int):
+        return (int(fps_field), 1)
+    if isinstance(fps_field, float):
+        if fps_field.is_integer():
+            return (int(fps_field), 1)
+        from fractions import Fraction
+        frac = Fraction(str(fps_field))
+        return (int(frac.numerator), int(frac.denominator))
+    if isinstance(fps_field, list) and len(fps_field) == 2:
+        return (int(fps_field[0]), int(fps_field[1]))
     if isinstance(fps_field, dict):
-        return float(fps_field["num"]) / float(fps_field["den"])
-    return 30.0
+        return (int(fps_field["num"]), int(fps_field["den"]))
+    return (30, 1)
+
+
+def fps_float(fps_field: Any) -> float:
+    num, den = fps_ratio(fps_field)
+    return float(num) / float(den)
+
+
+def last_drawn_frame_ms(el_end: int, fps_field: Any, offset: int = 0) -> int:
+    """Return the whole-ms instant of the last sampled frame strictly before el_end (ADR-0248)."""
+    num, den = fps_ratio(fps_field)
+    if num <= 0 or den <= 0 or el_end <= 0:
+        return int(offset)
+    step_den = den * 1000
+    last_frame = ((int(el_end) * num + step_den - 1) // step_den) - 1
+    if last_frame < 0:
+        return int(offset)
+    base_ms = (last_frame * 1000 * den) // num
+    return int(base_ms + int(offset))
+
+
+def resolve_op_end(
+    op: Dict[str, Any],
+    el_end: int,
+    fps_field: Any,
+) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+    """Resolve `"end": "last-drawn-frame"` or `{"rule": "last-drawn-frame", ...}` on an op."""
+    resolved_op = dict(op)
+    end_t_from: Optional[Dict[str, Any]] = None
+    for end_key in ("end", "t1", "t2"):
+        raw = resolved_op.get(end_key)
+        if raw == "last-drawn-frame":
+            resolved_op[end_key] = last_drawn_frame_ms(el_end, fps_field, 0)
+            end_t_from = {"rule": "last-drawn-frame"}
+        elif isinstance(raw, dict) and raw.get("rule") == "last-drawn-frame":
+            offset = raw.get("offset")
+            resolved_op[end_key] = last_drawn_frame_ms(
+                el_end, fps_field, int(offset) if offset is not None else 0
+            )
+            end_t_from = {"rule": "last-drawn-frame"}
+            if offset is not None:
+                end_t_from["offset"] = int(offset)
+    return resolved_op, end_t_from
 
 
 def on_frame(t_ms: float, fps: float) -> int:
@@ -1180,6 +1230,8 @@ def apply_spec(
         element = find_element(updated, el_id)
         el_start = int(element.get("start", 0))
         el_end = int(element.get("end", updated.get("duration", 1000)))
+        fps_field = updated.get("fps", 30)
+        op, end_t_from = resolve_op_end(op, el_end, fps_field)
         container, key, prop_leaf, eff_name = resolve_target(element, prop_spec, op.get("effect"))
         current_val = container.get(key)
         is_pair = is_pair_property(prop_leaf, current_val, op)
@@ -1226,6 +1278,8 @@ def apply_spec(
         else:
             raise ValueError(f"Unknown keyframe operation '{op_name}'")
 
+        if end_t_from is not None and new_kfs:
+            new_kfs[-1]["t_from"] = end_t_from
         spliced = splice_keyframes(current_val, new_kfs, t0, t1)
         set_in_canonical_order(container, key, spliced, container is element)
 

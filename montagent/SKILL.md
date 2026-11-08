@@ -9,7 +9,7 @@ A Montagent video is one JSON project file. You write it with your ordinary file
 
 ## Environment
 
-You need a shell with the `montagent` CLI on `PATH`, Python 3, and ideally the Montagent MCP server. The MCP tools and the CLI share their verbs, so use whichever is to hand. `fmt`, `fonts` and `probe` exist only on the CLI. <!-- workaround: #455 · replaced by: font vendoring, fmt and probe over MCP --> With MCP alone and no shell, a project that has text cannot be rendered: tell the user to install the CLI.
+You need a shell with the `montagent` CLI on `PATH`, Python 3, and ideally the Montagent MCP server. The MCP tools and the CLI share their verbs (including `fonts_list`, `fonts_vendor` and `fonts_acquire`), so use whichever is to hand; `montagent fmt` and `montagent probe` are CLI subcommands.
 
 **The binary wins.** These skills describe Montagent's `main` branch. <!-- guard-ok: main workaround --> When a finding, a refusal or `--help` disagrees with a skill, do what the binary says. An unknown-key or unknown-code error on something a skill taught means the installed binary is older than the skill: report `montagent --version`, then upgrade or use the marked workaround.
 
@@ -31,11 +31,11 @@ Run every step, in order, every time the project changes.
 5. **Look.** Load `montagent-craft` before judging anything. Call `montagent frame --from` and `--to` over the whole video, or a stretch of it. You get a contact sheet: one tile for each visual state. Its provenance list tells you which element drew each tile. To look closely at one tile, call `frame` at the instant its line lists. For motion, `preview` a span of a few seconds around the beat. When a span is refused, the refusal names ranges that fit. Fix what you see, then go back to step 4.
 6. **Render**, once, in the foreground, as a call of its own, and wait for it to exit. A render that your shell tool moves to the background is still running: wait on it until it exits. End your turn only after it has.
 
-   One exception, for a long render, decided by a calculation. First render a slice of a few seconds with `render --from --to`, over the stretch with the most on screen. Its RENDER line gives the slice's frames and the seconds it took; divide them for the slice's frames per second. Divide the whole video's frame count (its length times its frame rate) by that. If the answer is above about 120 s: <!-- workaround: #873 · replaced by: render --estimate -->
+   One exception, for a long render, decided by a pre-flight slice check. First run `montagent render --from <t> --to <t> --profile` (or pass `from`, `to` and `profile: true` on MCP) over a representative stretch of a few seconds with the most on screen. Its `RENDER` line gives the slice's frames and the seconds it took; divide them for the slice's s/frame (or frames per second), and read `render.profile` with `--json` to see per-element attribution (`id`, `type`, `effect`, `frames_painted`, `frames_reused`, `cpu_ms`), `prefix_ended_by`, and the per-stage CPU split before committing to the full render. Divide the whole video's frame count (its length times its frame rate) by the slice's fps. If the answer is above about 120 s: <!-- guard-ok: from to RENDER effect cpu_ms prefix_ended_by frames_painted frames_reused -->
    - Pass `--progress-file` with a fresh path (`progress_file` on MCP). It writes a JSON status file to poll (state, phase, frames, ETA). Run the render in the background. <!-- guard-ok: progress_file -->
    - Poll the file every 10 to 30 s. Read `state`, `phase` and `eta_note` there. `fps` is the rate over the recent window, the only rate the file carries (there is no `fps_window`). `started_at` and `updated_at` are UTC, ending in `Z`. `wall_clock_gap_ms` is the wall clock the run's own `elapsed_s` missed: a large value means the wall clock moved on while the run's own clock did not (the machine slept). It does not say the render is alive: judge that by `updated_at` changing, as below. Don't work progress out yourself, and don't write a wrapper script that guesses at it. <!-- guard-ok: state phase eta_note fps_window started_at wall_clock_gap_ms elapsed_s -->
    - Stop polling when `state` is `done`, `failed` or `cancelled`, or when the file is stale: `state` is `running` and `updated_at` has not changed across polls spanning at least `max(3 × write_interval_s, 10 s)`. A stale file means the render died. Compare the file with your earlier reads of it, never with your own clock. `pid` means something only on the machine running the render. <!-- guard-ok: state done failed cancelled running updated_at pid -->
-   - To learn what a slow slice spends its time on, add `--profile` (`profile` on MCP) to the slice render and read `render.profile` with `--json`: CPU ms per element, element type and effect, and the stage split. Per element, `frames_painted` counts frames it was drawn on and `frames_reused` frames its pixels were copied from the static prefix of unchanging bottom layers. A profiled run is timed, so don't take its seconds as the slice's speed. <!-- guard-ok: profile frames_painted frames_reused -->
+   - To inspect what any slow slice spends its time on, add `--profile` (`profile: true` on MCP) to `render --from <t> --to <t> --profile` and read `render.profile` with `--json`: CPU ms per element (`cpu_ms`), element type and effect, `prefix_ended_by`, and the stage split. Per element, `frames_painted` counts frames it was drawn on and `frames_reused` frames its pixels were copied from the static prefix of unchanging bottom layers. A profiled run is timed, so note that profiling adds instrumentation overhead. <!-- guard-ok: profile cpu_ms prefix_ended_by frames_painted frames_reused -->
    - Don't end your turn before then, and don't delete the file.
    - On MCP, a background render needs a client that can make a second call while `render` is open. Without one, stay on the call and follow its progress notifications.
 7. **Verify.** Run `verify` on the project. It proves the MP4 was rendered from this version of the project and measures what is in it. On an error, render again.
@@ -110,11 +110,12 @@ This is the capability map. Read it before you design, so the brief does not lea
 
 **Audio**
 
-- Audio on tracks, with per-clip volume: `audio`, `volume`.
+- Audio on tracks, with per-clip volume, constant-power stereo pan and stereo channel routing: `audio`, `volume`, `pan`, `channels`.
 - A crossfade between two audio clips, or between two clips' sound alone: `kind: "audio_crossfade"`, `audio` (`constant_power` unless both sides are the same source, then `constant_gain`). Fading a clip against silence stays a `volume` ramp.
 - EQ on an audio or video clip, stackable and in list order: a high-pass or low-pass at 12, 24 or 48 dB/oct, a low or high shelf, a bell, or a parametric biquad band (`audio_effects`: `highpass`, `lowpass`, `shelf`, `bell`, `equalizer`, `frequency_hz`, `slope_db_per_oct`, `side`, `gain_db`, `q`, `enabled`).
-- Even out or hold a clip's level before `volume`: `audio_effects` with `compressor` (`threshold_db`, `ratio`, `attack_ms`, `release_ms`, `makeup_db`), `gate` (`threshold_db`, `attack_ms`, `release_ms`), and `limiter` (`ceiling_db`, `release_ms`); every key is required.
+- Even out or hold a clip's level, reduce steady broadband noise, or add delay taps before `volume`: `audio_effects` with `compressor` (`threshold_db`, `ratio`, `attack_ms`, `release_ms`, `makeup_db`), `gate` (`threshold_db`, `attack_ms`, `release_ms`), `limiter` (`ceiling_db`, `release_ms`), `reduce_noise` (`reduction_db`, 5..20, one per clip), and `echo` (`delay_ms`, `feedback`, `mix`, stackable); every key is required.
 - Bring a clip to a written loudness with one measured gain, before `volume`: `audio_effects` with `normalize_loudness` (`target_lufs`, -40..-6, required, one per clip).
+- Find a music track's tempo, first downbeat and frame-snapped beat grid, and lay the track in on the beat (`montagent-craft`).
 
 ### Which skill covers it
 
@@ -136,7 +137,6 @@ Each item names the issue whose close retires it. Tell the user when the brief d
 
 - Parenting and groups. Bake the hierarchy to per-element keyframes (`montagent-character`). <!-- workaround: #499 · replaced by: parenting or a group transform -->
 - Changing an element's image over time. Use one element per image, each shown for its own span (`montagent-character`). <!-- workaround: #518 · replaced by: an image that changes over time -->
-- Reading a track's tempo or beats. Find the beat grid with the script in `montagent-craft`. <!-- workaround: #547 · replaced by: tempo and downbeat from probe -->
 
 ### Not by design
 

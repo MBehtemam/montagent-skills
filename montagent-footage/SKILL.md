@@ -49,8 +49,8 @@ Every recipe gives starting ranges, not answers. Each ends in a **look step**: l
 
 Check it before anything else goes on top:
 
-1. **Three lossless crops.** `frame --crop <x,y,w,h> --png` at the hair, at a shoulder or sleeve edge, and at the hands, over the ground you will deliver on. A crop comes back at true scale, so a 200–400 px box is enough. <!-- workaround: #543 · replaced by: a fringe and hole count from measure on a keyed element -->
-2. **Done already?** Hair, collar and hands solid, with at most a 1–2 px dark, olive or tan line along the edges: the key is done, so move on. That line is the **edge floor**: every setting from 0.12 to 0.3 leaves it, and `spill` has already turned it from green to tan, so a green-pixel count reads zero on it. <!-- workaround: #543 · replaced by: a fringe and hole count from measure on a keyed element -->
+1. **Three lossless crops.** `frame --crop <x,y,w,h> --png` at the hair, at a shoulder or sleeve edge, and at the hands, over the ground you will deliver on. A crop comes back at true scale, so a 200–400 px box is enough.
+2. **Done already?** Hair, collar and hands solid, with at most a 1–2 px dark, olive or tan line along the edges: the key is done, so move on. That line is the **edge floor**: every setting from 0.12 to 0.3 leaves it, and `spill` has already turned it from green to tan, so a green-pixel count reads zero on it.
 3. **Otherwise, one fix per defect.** The ground showing through hair, a collar or dark clothes: lower `tolerance` by 0.05. A pale or green halo wider than the edge floor: raise `tolerance` by 0.03, or `softness` by 0.03. Crop again and go back to 2. Three settings at most, all on the one keyed element: keyed copies split by region multiply render time and still leave a seam.
 4. **Drift.** `measure` the keyed element. Its opaque share should stay within a point or two across the take. A step means the lighting changed there: key `tolerance` with a keyframe either side of the step, or cut the element at that frame and key each part on its own.
 
@@ -270,3 +270,17 @@ Temporal denoise filters (`hqdn3d`, `nlmeans`) and video inpainting (Content-Awa
 # High-quality temporal/spatial denoise before import
 ffmpeg -i noisy.mp4 -vf "hqdn3d=4.0:3.0:6.0:4.5" -c:v libx264 -crf 18 -c:a copy clean.mp4
 ```
+
+### Compact mark declarations and guarded regeneration
+
+When a long-form piece has dozens or hundreds of callouts, badges, beat indicators or lower-third marks sharing defaults, author them in a compact spec and expand them into explicit `.montagent.json` elements with `scripts/marks.py`: <!-- guard-ok: marks -->
+
+```bash
+python3 scripts/marks.py marks.spec.json project.montagent.json
+python3 scripts/marks.py --inspect marks.spec.json project.montagent.json
+```
+
+- **Compact spec (`defaults`, `marks`, `overrides`):** `defaults` declares shared element properties plus optional `fade_in_ms`, `fade_out_ms`, `ease`, `track_prefix` (default `"marks"`), and `max_tracks` (default `40`). Each entry in `marks` carries an explicit `id` or derives a deterministic slug from `(type, start, label)` so inserting, removing, or reordering marks never shifts sibling IDs (`"id": "mark_<id>"`). <!-- guard-ok: defaults marks overrides fade_in_ms fade_out_ms track_prefix max_tracks label -->
+- **Track reuse & fade-out clamping:** non-overlapping marks pack deterministically across `<track_prefix>_1`, `<track_prefix>_2`, … so a 1,000+ mark timeline stays within `<= 40` tracks when concurrency allows, and fade-out terminal keyframes land on the last drawn frame strictly before `end` (zero `R-KEYFRAME-UNREACHED` findings).
+- **Orphaned overrides & guarded regeneration:** an override key naming a mark `id` not in `marks` exits non-zero unless `--prune-overrides` is passed. Expansion writes `<spec>.manifest.json` beside the compact spec file; if a generated `mark_<id>` element was edited directly in `.montagent.json`, the next run stops and prints the diff unless `--adopt-edits` (folds direct edits back into `overrides`) or `--force` (overwrites from the compact spec) is passed. Non-generated tracks and elements are preserved untouched. <!-- guard-ok: overrides marks -->
+
